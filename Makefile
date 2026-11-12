@@ -1,5 +1,6 @@
 CC ?= gcc
-CFLAGS ?= -Wall -Wextra
+CFLAGS += -Wall -Wextra
+LDLIBS += -li2c
 
 SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
@@ -10,7 +11,7 @@ TARGET = temperature-controller
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $@
+	$(CC) $(OBJ) -o $@ $(LDLIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
