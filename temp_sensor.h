@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 /**
  * @brief Initializes BM280 sensor
  *

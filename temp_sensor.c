@@ -1,3 +1,4 @@
+#include "temp_sensor.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -49,6 +50,7 @@ int temp_sensor_init(void)
     if (status < 0) {
         syslog(LOG_ERR, "Failed to select sensor as I2C slave: %s",
                 strerror(errno));
+        return -1;
     }
 
     // Get temperature trimming parameters
