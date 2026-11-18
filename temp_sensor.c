@@ -1,6 +1,7 @@
 #include "temp_sensor.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -41,7 +42,7 @@ int temp_sensor_init(void)
     // Open i2c file
     i2c_fd = open(I2C_DEV_FILE, O_RDWR);
     if (i2c_fd < 0) {
-        syslog(LOG_ERR, "Failed to open i2c file");
+        syslog(LOG_ERR, "Failed to open i2c file: %s", strerror(errno));
         return -1;
     }
 
@@ -66,6 +67,17 @@ int temp_sensor_init(void)
     dig_T3 = (dig_T_arr[5] << 8) | dig_T_arr[4];
 
     return 0;
+}
+
+void temp_sensor_cleanup(void)
+{
+    int status;
+
+    // Close I2C file
+    status = close(i2c_fd);
+    if (status) {
+        syslog(LOG_ERR, "Failed to close i2c file: %s", strerror(errno));
+    }
 }
 
 int get_temp(int32_t *temp)

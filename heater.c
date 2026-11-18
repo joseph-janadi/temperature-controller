@@ -51,7 +51,7 @@ int heater_init(const uint32_t pwm_period_ns, const uint32_t pwm_duty_cycle_ns)
         return -1;
     }
 
-    // Enable PWM
+    // Enable PWM channel
     status = write_to_file(PWM_CHAN_DIR "enable", "1");
     if (status) {
         syslog(LOG_ERR, "Failed to enable PWM channel %s", PWM_CHAN_NUM);
@@ -59,6 +59,23 @@ int heater_init(const uint32_t pwm_period_ns, const uint32_t pwm_duty_cycle_ns)
     }
 
     return 0;
+}
+
+void heater_cleanup(void)
+{
+    int status;
+
+    // Disable PWM channel
+    status = write_to_file(PWM_CHAN_DIR "enable", "0");
+    if (status) {
+        syslog(LOG_ERR, "Failed to disable PWM channel %s", PWM_CHAN_NUM);
+    }
+
+    // Unexport PWM channel
+    status = write_to_file(PWM_CHIP_DIR "unexport", PWM_CHAN_NUM);
+    if (status) {
+        syslog(LOG_ERR, "Failed to unexport PWM channel %s", PWM_CHAN_NUM);
+    }
 }
 
 static int write_to_file(const char *file, const char *val)

@@ -10,6 +10,11 @@
 int temp_sensor_init(void);
 
 /**
+ * @brief Close temp_sensor I2C file
+ */
+void temp_sensor_cleanup(void);
+
+/**
  * @brief Reads the temperature from BM280 sensor
  *
  * @param[out] temp Pointer to store the temperature in degrees-C as a scaled

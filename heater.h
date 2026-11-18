@@ -9,3 +9,8 @@
  * @return Status: 0 on success, -1 on failure
  */
 int heater_init(const uint32_t pwm_period_ns, const uint32_t pwm_duty_cycle_ns);
+
+/**
+ * @brief Disable the heater PWM and reset to default values
+ */
+void heater_cleanup(void);
