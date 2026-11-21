@@ -6,6 +6,7 @@
 #include <syslog.h>
 #include "temp_sensor.h"
 #include "heater.h"
+#include "fan.h"
 
 #define PROGRAM_NAME "temperature-controller"
 
@@ -14,28 +15,40 @@
 #define NS_PER_S    1000000000UL
 #define NS_PER_MS   1000000UL
 
-const uint32_t HEATER_PWM_PERIOD_NS = 1000000;
-const uint8_t HEATER_PWM_DUTY_CYCLE = 50;
-const uint32_t HEATER_PWM_DUTY_CYCLE_NS = (uint64_t)HEATER_PWM_PERIOD_NS *
-    HEATER_PWM_DUTY_CYCLE / 100;
+#define HEATER_PWM_PERIOD_NS        1000000UL
+#define HEATER_PWM_DUTY_CYCLE       50U
+#define HEATER_PWM_DUTY_CYCLE_NS    ((uint32_t)((uint64_t)(HEATER_PWM_PERIOD_NS) * \
+                                    (HEATER_PWM_DUTY_CYCLE) / 100))
 
+#define TEMP_THRESHOLD_LOWER    20L
+#define TEMP_THRESHOLD_UPPER    25L
+#define FAN_PWM_PERIOD_NS       1000000UL
+#define FAN_DUTY_CYCLE_MIN      20
+#define FAN_DUTY_CYCLE_MAX      100
+
+uint8_t duty_from_temp(int32_t temp);
 static int wait(struct timespec *next_time);
 
 int main(void)
 {
     int status;
     int32_t temp;
+    uint8_t fan_duty_target, fan_duty_actual;
     struct timespec next_time;
 
     openlog(PROGRAM_NAME, 0, LOG_USER);
     syslog(LOG_INFO, "Program has started");
 
-    // Initialize temperature sensor and heater
+    // Initialize temperature sensor, heater, and fan
     status = temp_sensor_init();
     if (status) {
         exit(EXIT_FAILURE);
     }
     status = heater_init(HEATER_PWM_PERIOD_NS, HEATER_PWM_DUTY_CYCLE_NS);
+    if (status) {
+        exit(EXIT_FAILURE);
+    }
+    status = fan_init(FAN_PWM_PERIOD_NS);
     if (status) {
         exit(EXIT_FAILURE);
     }
@@ -49,23 +62,52 @@ int main(void)
 
 
     while (1) {
-        // Get temperature
+        // Get temperature and log it
         status = get_temp(&temp);
         if (status < 0) {
-            exit(EXIT_FAILURE);
+            break;
+        }
+        syslog(LOG_INFO, "temp = %d.%d C", temp/100, temp%100);
+
+        // Calcuate fan duty cycle target from temperature
+        fan_duty_target = duty_from_temp(temp/100);
+
+        // Set fan duty cycle to maintain temperature
+        status = fan_set_duty((uint64_t)fan_duty_target * FAN_PWM_PERIOD_NS / 100);
+        if (status) {
+            break;
         }
 
-        // Log temperature value
-        syslog(LOG_INFO, "temp = %d.%d C", temp/100, temp%100);
+        // Get actual fan duty cycle and log it
+        status = fan_get_duty(&fan_duty_actual);
+        if (status) {
+            break;
+        }
 
         // Wait until next scheduled time
         status = wait(&next_time);
         if (status) {
-            exit(EXIT_FAILURE);
+            break;
         }
     }
 
+    fan_cleanup();
+
     return 0;
+}
+
+uint8_t duty_from_temp(int32_t temp)
+{
+    if (temp < TEMP_THRESHOLD_LOWER) {
+        return 0;
+    }
+    else if (temp >= TEMP_THRESHOLD_UPPER) {
+        return 100;
+    }
+
+    return (uint8_t)(FAN_DUTY_CYCLE_MIN + (temp - TEMP_THRESHOLD_LOWER) *
+            (FAN_DUTY_CYCLE_MAX - FAN_DUTY_CYCLE_MIN) / (TEMP_THRESHOLD_UPPER -
+                TEMP_THRESHOLD_LOWER));
 }
 
 static int wait(struct timespec *next_time)
