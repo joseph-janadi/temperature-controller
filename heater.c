@@ -23,12 +23,12 @@ int heater_init(const uint32_t pwm_period_ns, const uint32_t pwm_duty_cycle_ns)
     // Convert PWM parameters to strings
     status = snprintf(pwm_period_ns_str, MAX_BUF_SIZE, "%u", pwm_period_ns);
     if (status < 0) {
-        syslog(LOG_ERR, "Failed to convert pwm_period_ns to string");
+        syslog(LOG_ERR, "Failed to convert heater pwm_period_ns to string");
         return -1;
     }
     status = snprintf(pwm_duty_cycle_ns_str, MAX_BUF_SIZE, "%u", pwm_duty_cycle_ns);
     if (status < 0) {
-        syslog(LOG_ERR, "Failed to convert pwm_duty_cycle_ns to string");
+        syslog(LOG_ERR, "Failed to convert heater pwm_duty_cycle_ns to string");
         return -1;
     }
 
